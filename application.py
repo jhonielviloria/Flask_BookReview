@@ -8,9 +8,6 @@ from sqlalchemy.orm import scoped_session, sessionmaker
 
 app = Flask(__name__)
 
-# app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
-# db = SQLAlchemy(app)
-
 # Check for environment variable
 if not os.getenv("DATABASE_URL"):
     raise RuntimeError("DATABASE_URL is not set")
@@ -26,22 +23,45 @@ Session(app)
 engine = create_engine(os.getenv("DATABASE_URL"))
 db = scoped_session(sessionmaker(bind=engine))
 
-# class Users(db.Model):
-#     __tablename__ = "users"
-#     id = db.Column(db.Integer, primary_key=True)
-#     username = db.Column(db.String, nullable=False)
-#     password = db.Column(db.String, nullable=False)
 
 class Users(object):
     query = db.query_property()
+
+
+def get_user(username):
+    return db.execute("SELECT * FROM users WHERE username = :username",
+               {"username": username}).first()
+
 
 @app.route("/")
 def index():
     return "Project 1: TODO"
 
+
+@app.route("/home", methods=["POST"])
+def home():
+    username = request.form.get("username")
+    password = request.form.get("password")
+    user = get_user(username)
+    if not user:
+        home_url = "not-registered"
+        return render_template("error.html", message="User is not registered")
+    pw = db.execute("select crypt(:login_pass, :user_pass)",
+               {"login_pass": password, "user_pass": user.password}).first()
+    if pw[0] != user.password:
+        return render_template("login.html", error_message="Wrong password")
+    return render_template("home.html")
+
+
+@app.route("/login")
+def login():
+    return render_template("login.html")
+
+
 @app.route("/register")
 def register():
     return render_template("register.html")
+
 
 @app.route("/registered", methods=["POST"])
 def registered():
@@ -52,8 +72,7 @@ def registered():
 
     if password != password2:
         return render_template("error.html", message="Password doesn't match")
-    user = db.execute("SELECT * FROM users WHERE username = :username",
-                      {"username": username}).first()
+    user = get_user(username)
 
     if user:
         return render_template("error.html", message="User already exist")
