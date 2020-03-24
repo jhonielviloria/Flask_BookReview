@@ -1,6 +1,6 @@
 import os
 
-from flask import Flask, session, render_template, request
+from flask import Flask, session, render_template, request, redirect, url_for
 from flask_session import Session
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
@@ -23,6 +23,7 @@ Session(app)
 engine = create_engine(os.getenv("DATABASE_URL"))
 db = scoped_session(sessionmaker(bind=engine))
 
+LOGGED_IN = False
 
 class Users(object):
     query = db.query_property()
@@ -35,27 +36,46 @@ def get_user(username):
 
 @app.route("/")
 def index():
-    return "Project 1: TODO"
+    global LOGGED_IN
+    if LOGGED_IN:
+        return render_template("home.html")
+    else:
+        return redirect(url_for("login"))
 
 
-@app.route("/home", methods=["POST"])
+@app.route("/home", methods=["POST", "GET"])
 def home():
-    username = request.form.get("username")
-    password = request.form.get("password")
-    user = get_user(username)
-    if not user:
-        home_url = "not-registered"
-        return render_template("error.html", message="User is not registered")
-    pw = db.execute("select crypt(:login_pass, :user_pass)",
-               {"login_pass": password, "user_pass": user.password}).first()
-    if pw[0] != user.password:
-        return render_template("login.html", error_message="Wrong password")
-    return render_template("home.html")
+    global LOGGED_IN
+    if request.method == 'POST':
+        username = request.form.get("username")
+        password = request.form.get("password")
+        user = get_user(username)
+        if not user:
+            home_url = "not-registered"
+            return render_template("login.html", error_message="Username does not exist!")
+        pw = db.execute("select crypt(:login_pass, :user_pass)",
+                   {"login_pass": password, "user_pass": user.password}).first()
+        if pw[0] != user.password:
+            return render_template("login.html", error_message="Wrong password")
+        LOGGED_IN = True
+        return render_template("home.html")
+    else:
+        if LOGGED_IN:
+            return render_template("home.html")
+        else:
+            return redirect(url_for("login"))
 
 
 @app.route("/login")
 def login():
     return render_template("login.html")
+
+
+@app.route("/logout")
+def logout():
+    global LOGGED_IN
+    LOGGED_IN = False
+    return redirect(url_for("login"))
 
 
 @app.route("/register")
@@ -71,11 +91,11 @@ def registered():
     password2 = request.form.get("password2")
 
     if password != password2:
-        return render_template("error.html", message="Password doesn't match")
+        return render_template("register.html", error_message="Password doesn't match")
     user = get_user(username)
 
     if user:
-        return render_template("error.html", message="User already exist")
+        return render_template("register.html", error_message="User already exist")
 
     # Add passenger.
     db.execute("INSERT INTO users (username, password) VALUES (:username, crypt(:password, gen_salt('bf', 8)))",

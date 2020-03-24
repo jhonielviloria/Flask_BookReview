@@ -5,7 +5,10 @@
 {% endblock %}
 
 {% block body %}
-    <h1>Welcome!</h1>
+<div class="row">
+  <div class="col-sm-11"><h1>Welcome!</h1></div>
+  <div class="col-sm-1"><a href="{{ url_for('logout') }}">logout</a></div>
+</div>
 
     You have successfully logged in.
 {% endblock %}
