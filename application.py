@@ -2,36 +2,20 @@ import os
 
 from flask import Flask, session, render_template, request, redirect, url_for
 from flask_session import Session
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, func, and_
 from sqlalchemy.orm import scoped_session, sessionmaker
-
+from models import db, User, Book
 
 app = Flask(__name__)
-
-# Check for environment variable
-if not os.getenv("DATABASE_URL"):
-    raise RuntimeError("DATABASE_URL is not set")
-
-# Configure session to use filesystem
-app.config["SESSION_PERMANENT"] = False
-app.config["SESSION_TYPE"] = "filesystem"
+app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-
-Session(app)
-
-# Set up database
-engine = create_engine(os.getenv("DATABASE_URL"))
-db = scoped_session(sessionmaker(bind=engine))
+db.init_app(app)
 
 LOGGED_IN = False
 
-class Users(object):
-    query = db.query_property()
-
 
 def get_user(username):
-    return db.execute("SELECT * FROM users WHERE username = :username",
-               {"username": username}).first()
+    return User.query.filter_by(username=username).first()
 
 
 @app.route("/")
@@ -53,10 +37,14 @@ def home():
         if not user:
             home_url = "not-registered"
             return render_template("login.html", error_message="Username does not exist!")
-        pw = db.execute("select crypt(:login_pass, :user_pass)",
-                   {"login_pass": password, "user_pass": user.password}).first()
-        if pw[0] != user.password:
+
+        pw_matched = User.query.\
+            filter_by(username=username).\
+            filter_by(password=func.crypt(password, user.password)).\
+            count()
+        if not pw_matched:
             return render_template("login.html", error_message="Wrong password")
+
         LOGGED_IN = True
         return render_template("home.html")
     else:
@@ -97,15 +85,29 @@ def registered():
     if user:
         return render_template("register.html", error_message="User already exist")
 
-    # Add passenger.
-    db.execute("INSERT INTO users (username, password) VALUES (:username, crypt(:password, gen_salt('bf', 8)))",
-               {"username": username, "password": password2,})
-    db.commit()
-    # user = Users(username=username,
-    #              password=password2)
-    # db.session.add(user)
-    # db.session.commit()
-    # flight.add_passenger(name)
+    new_user = User(username=username,
+                    password=func.crypt(password2, func.gen_salt('bf', 8)))
+    db.session.add(new_user)
+    db.session.commit()
+
     return render_template("registered.html")
 
 
+@app.route("/results", methods=["POST"])
+def results():
+    # Get form information.
+    title = request.form.get("title")
+    author = request.form.get("author")
+    isbn = request.form.get("isbn")
+    # titles = db.execute("\\dt")
+    # if title:
+    #     titles = db.execute("SELECT * FROM Books WHERE title = :title",
+    #                                {"title": title}).fetchall()
+    # if author:
+    #     authors = db.execute("SELECT * FROM Books WHERE author = :author",
+    #                                {"author": author}).fetchall()
+    # if isbn:
+    #     isbns = db.execute("SELECT * FROM Books WHERE title = :isbn",
+    #                        {"isbn": isbn}).fetchall()
+    # return render_template("results.html", titles=titles)
+    return render_template("results.html")
