@@ -2,7 +2,7 @@ import os
 
 from flask import Flask, session, render_template, request, redirect, url_for
 from flask_session import Session
-from sqlalchemy import create_engine, func, and_
+from sqlalchemy import create_engine, func, and_, text
 from sqlalchemy.orm import scoped_session, sessionmaker
 from models import db, User, Book
 
@@ -93,21 +93,55 @@ def registered():
     return render_template("registered.html")
 
 
+def add_percent(string):
+    return('%' + str(string) +'%')
+
+
+def get_query(string, category):
+    arg = text('Book.' + category)
+    return Book.query.filter(arg==string).all()
+
+
+# def get_query_like(string, category):
+#     arg = text('Book.' + category + '.ilike("' + add_percent(string) + '")')
+#     return Book.query.filter(arg).all()
+    # book = Book.query.filter(Book.title.ilike(add_percent(title))).all()
+
 @app.route("/results", methods=["POST"])
 def results():
+    books = []
     # Get form information.
     title = request.form.get("title")
     author = request.form.get("author")
     isbn = request.form.get("isbn")
-    # titles = db.execute("\\dt")
-    # if title:
-    #     titles = db.execute("SELECT * FROM Books WHERE title = :title",
-    #                                {"title": title}).fetchall()
-    # if author:
-    #     authors = db.execute("SELECT * FROM Books WHERE author = :author",
-    #                                {"author": author}).fetchall()
-    # if isbn:
-    #     isbns = db.execute("SELECT * FROM Books WHERE title = :isbn",
-    #                        {"isbn": isbn}).fetchall()
-    # return render_template("results.html", titles=titles)
-    return render_template("results.html")
+
+    # Get exact matches
+    # books += get_query(title, 'title')
+    # books += get_query(author, 'author')
+    # books += get_query(isbn, 'isbn')
+    books += Book.query.filter(Book.title==title).all()
+    books += Book.query.filter(Book.author==author).all()
+    books += Book.query.filter(Book.isbn==isbn).all()
+    # Get like matches
+    if title:
+        books += Book.query.filter(Book.title.ilike(add_percent(title))).all()
+    if author:
+        books += Book.query.filter(Book.author.like(add_percent(author))).all()
+    if isbn:
+        books += Book.query.filter(Book.isbn.ilike(add_percent(isbn))).all()
+
+    # book = get_query_like(isbn, 'isbn')
+    # books = set(books)
+
+    if not books:
+        return render_template("home.html", error_message="No results found!")
+    # Remove duplicates
+    books = set(books)
+
+    return render_template("results.html", books=books)
+
+
+@app.route("/<int:book_id>")
+def book(book_id):
+    book_detail = Book.query.get(book_id)
+    return render_template("book.html", book=book_detail)
