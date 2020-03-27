@@ -28,9 +28,15 @@ class Book(db.Model):
     year = db.Column(db.Integer, nullable=False)
 
     def __repr__(self):
-        return '<User {}>'.format(self.title)
-# class Passenger(db.Model):
-#     __tablename__ = "passengers"
-#     id = db.Column(db.Integer, primary_key=True)
-#     name = db.Column(db.String, nullable=False)
-#     flight_id = db.Column(db.Integer, db.ForeignKey("flights.id"), nullable=False)
+        return '<Book {}>'.format(self.title)
+
+
+class Review(db.Model):
+    __tablename__ = "Reviews"
+    id = db.Column(db.Integer, primary_key=True)
+    content = db.Column(db.String, nullable=False)
+    user = db.Column(db.String, nullable=False)
+    book = db.Column(db.String, nullable=False)
+
+    def __repr__(self):
+        return '<Review {}>'.format(self.id)

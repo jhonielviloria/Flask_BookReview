@@ -14,13 +14,22 @@
         <li>ISBN: {{ book.isbn }} </li>
     </ul>
 
-<!--    <h2>Passengers</h2>-->
-<!--    <ul>-->
-<!--        {% for passenger in passengers %}-->
-<!--            <li>{{ passenger.name }}</li>-->
-<!--        {% else %}-->
-<!--            <li>No passengers.</li>-->
-<!--        {% endfor %}-->
-<!--    </ul>-->
+    <form action="{{ url_for('book', book_id=book.id) }}" method="post">
+        <div class="form-group">
+            <label for="content">Review:</label>
+            <input class="form-control" rows="5" id="content" name="content" placeholder="Enter your review of the book here">
+        </div>
+        <div class="form-group">
+            <button class="btn btn-secondary">Submit</button>
+        </div>
+    </form>
 
+    <ul>
+    {% for review in reviews %}
+        <li class="list-group-item list-group-item-action">
+            <p>{{ review.user }}:</p>
+            <p>{{ review.content }}</p>
+        </li>
+    {% endfor %}
+    </ul>
 {% endblock %}
