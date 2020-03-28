@@ -37,6 +37,7 @@ class Review(db.Model):
     content = db.Column(db.String, nullable=False)
     user = db.Column(db.String, nullable=False)
     book = db.Column(db.String, nullable=False)
+    rating = db.Column(db.Integer, nullable=False)
 
     def __repr__(self):
         return '<Review {}>'.format(self.id)

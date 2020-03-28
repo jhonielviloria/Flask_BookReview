@@ -4,32 +4,73 @@
     Book: {{ book.title }}
 {% endblock %}
 
+    {% block error %}
+        <p class="text-danger"> {{ error_message }} </p>
+    {% endblock %}
 {% block body %}
-    <h1>Book Details</h1>
-
-    <ul>
-        <li>Title: {{ book.title }}</li>
-        <li>Author: {{ book.author }}</li>
-        <li>Publication year: {{ book.year }} </li>
-        <li>ISBN: {{ book.isbn }} </li>
-    </ul>
-
-    <form action="{{ url_for('book', book_id=book.id) }}" method="post">
-        <div class="form-group">
-            <label for="content">Review:</label>
-            <input class="form-control" rows="5" id="content" name="content" placeholder="Enter your review of the book here">
+    <div class="container">
+    <div class="container p-3 my-3 bg-dark text-white">
+        <h1>Book Details</h1>
+    </div>
+        <h2>Title: <small>{{ book.title }}</small></h2>
+        <h2>Author: <small>{{ book.author }}</small></h2>
+        <h2>Publication year: <small>{{ book.year }}</small></h2>
+        <h2>ISBN: <small>{{ book.isbn }}</small></h2>
+        <h2>Goodreads Review Data:</h2>
+        <div class="container">
+            <h6>No. of rating: <small>{{ rating_total }}</small></h6>
+            <h6>Average rating: <small>{{ rating_ave }}</small></h6>
         </div>
-        <div class="form-group">
-            <button class="btn btn-secondary">Submit</button>
-        </div>
-    </form>
+        <br>
+        <br>
+        <form action="{{ url_for('book', book_id=book.id) }}" method="post">
+            <div class="form-group">
+                <p class="text-danger"> {{ error_message }} </p>
+                <label for="content">Review this book:</label>
+                <textarea class="form-control" rows="5" id="content" name="content" "></textarea>
+            </div>
+            <div class="container">
+                <p>Rate: </p>
+                <label class="radio-inline">
+                    <input type="radio" name="rating" value=1 required>1
+                </label>
+                <label class="radio-inline">
+                    <input type="radio" name="rating" value=2>2
+                </label>
+                <label class="radio-inline">
+                   <input type="radio" name="rating" value=3>3
+                </label>
+                <label class="radio-inline">
+                    <input type="radio" name="rating" value=4>4
+                </label>
+                <label class="radio-inline">
+                    <input type="radio" name="rating" value=5>5
+                </label>
+            </div>
+            <div class="form-group">
+                <button class="btn btn-secondary">Submit</button>
+            </div>
+        </form>
 
-    <ul>
-    {% for review in reviews %}
-        <li class="list-group-item list-group-item-action">
-            <p>{{ review.user }}:</p>
-            <p>{{ review.content }}</p>
-        </li>
-    {% endfor %}
-    </ul>
+        <div class="container">
+            <div class="container p-3 my-3">
+                <h3>User Reviews</h3>
+            </div>
+                <div class="container">
+                    {% if reviews %}
+                        <ul>
+                        {% for review in reviews %}
+                            <li class="list-group-item list-group-item-action">
+                                <p class="font-italic font-weight-bold">{{ review.user }}:</p>
+                                <p class="container"><span class="font-weight-bold"> Review:</span>  {{ review.content }}</p>
+                                <p class="container"><span class="font-weight-bold"> Rating:</span> {{ review.rating }}</p>
+                            </li>
+                        {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="font-italic">This book does not have reviews yet!</p>
+                    {% endif %}
+                </div>
+        </div>
+    </div>
 {% endblock %}
