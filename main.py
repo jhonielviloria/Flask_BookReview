@@ -1,26 +1,23 @@
 import os, requests
 
-from flask import Flask, session, render_template, request, redirect, url_for
+from flask import Flask, session, render_template, request, redirect, url_for, jsonify, abort
 from flask_session import Session
 from sqlalchemy import create_engine, func, and_, text
 from sqlalchemy.orm import scoped_session, sessionmaker
 from models import *
 
 app = Flask(__name__)
-app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config.from_json('config.json')
 db.init_app(app)
 LOGGED_IN = False
 user = None
 
 
-def main():
-    db.create_all()
+# def main():
+#     db.create_all()
+#     app.run(debug=True)
 
 
-if __name__=="__main__":
-    with app.app_context():
-        main()
 
 
 def get_user(username):
@@ -152,13 +149,17 @@ def results():
     return render_template("results.html", books=books)
 
 
+def get_request(isbn):
+    return requests.get("https://www.goodreads.com/book/review_counts.json",
+                        params={"key": os.environ.get("GOODREADS_KEY"),
+                                "isbns": isbn}).json()
+
+
 @app.route("/<int:book_id>", methods=['POST', 'GET'])
 def book(book_id):
     error_message = ''
     book_detail = Book.query.get(book_id)
-    res = requests.get("https://www.goodreads.com/book/review_counts.json",
-                       params={"key": os.environ.get("GOODREADS_KEY"),
-                               "isbns": book_detail.isbn}).json()
+    res = get_request(book_detail.isbn)
     rating_total = res['books'][0]['work_ratings_count']
     rating_ave = res['books'][0]['average_rating']
     if request.method == 'POST':
@@ -193,20 +194,31 @@ def book(book_id):
                            rating_ave=rating_ave)
 
 
-# @app.route("/<int:book_id>")
-# def book_review(book_id):
-#     global user
-#     content = request.form.get("content")
-#     book_detail = Book.query.get(book_id)
-#     username = user.username
-#     if content:
-#         new_review = Review(content=content,
-#                             user=username,
-#         db.session.add(new_review)
-#         db.session.commit()
-#     return redirect(url_for("book"))
-    # return render_template("book.html",
-    #                        book=book_detail,
-    #                        reviews=Review.query.filter(Review.book==book_detail))
+@app.route("/api/<isbn>", methods=['GET'])
+def api(isbn):
+    book = Book.query.filter(Book.isbn==isbn).first()
+    if book:
+            title = book.title
+            author = book.author
+            year = book.year
+
+            res = get_request(isbn)
+            rating_total = res['books'][0]['work_ratings_count']
+            rating_ave = res['books'][0]['average_rating']
+
+            return jsonify({
+                "title": title,
+                "author": author,
+                "year": year,
+                "isbn": isbn,
+                "review_count": rating_total,
+                "average_score": rating_ave
+        })
+    return render_template("error.html")
 
 
+
+if __name__=="__main__":
+    # with app.app_context():
+    #     main()
+    app.run(debug=False)

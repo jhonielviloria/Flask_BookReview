@@ -5,9 +5,15 @@
 {% endblock %}
 
 {% block body %}
+    <div class="row container">
+    <div class="my-3 col-sm-11">
+        <h1>Results:</h1>
+    </div>
+    <div class="my-3 col-sm-1">
+        <a href="{{ url_for('logout') }}">logout</a>
+    </div>
 
-        <div class="container-fluid">
-            <h1>Results:</h1>
+    </div>
     <ul>
     {% for book in books %}
         <li class="list-group-item list-group-item-action">
@@ -15,6 +21,4 @@
         </li>
     {% endfor %}
     </ul>
-
-    </div>
 {% endblock %}
