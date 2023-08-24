@@ -4,5 +4,5 @@ psycopg2-binary
 SQLAlchemy
 requests
 flask_sqlalchemy
-uwsgi==2.0.18
+uwsgi==2.0.22
 gunicorn==19.9.0
